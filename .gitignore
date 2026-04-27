@@ -7,9 +7,16 @@ desktop.ini
 .idea/
 *.swp
 
+# AI Assistants / CodeBuddy workspaces
+.CodeBuddy/
+.codebuddy/
+.WorkBuddy/
+.workbuddy/
+
 # Backup
 *.bak
 *.tmp
 
 # Local build artifacts
 node_modules/
+
