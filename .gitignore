@@ -1,0 +1,15 @@
+# Windows
+Thumbs.db
+desktop.ini
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# Backup
+*.bak
+*.tmp
+
+# Local build artifacts
+node_modules/

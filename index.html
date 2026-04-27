@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TTXQ-Auto — 天天象棋自动对弈</title>
+<meta name="description" content="TTXQ-Auto 是一套全自动天天象棋对弈系统，支持一键启动、自动识盘、自动下棋。">
+<style>
+:root{
+  --primary:#c0392b;--primary-dark:#922b21;
+  --gold:#d4a017;--gold-light:#f4d03f;
+  --bg:#fdf6ec;--card:#fff9f0;--border:#e8d5b0;
+  --text:#2c1a0e;--muted:#7d5a3c;--code:#1e1e1e;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  background:var(--bg);color:var(--text);line-height:1.75;
+}
+a{color:var(--primary);text-decoration:none}
+a:hover{text-decoration:underline}
+
+/* HEADER */
+header{
+  background:linear-gradient(135deg,#1a0a00 0%,#3d1a00 40%,#6b2d00 70%,#8b3a0a 100%);
+  color:#fff;padding:64px 24px 52px;text-align:center;position:relative;overflow:hidden;
+}
+header::before{
+  content:"";position:absolute;inset:0;
+  background:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/svg%3E");
+  opacity:.5;
+}
+.header-icon{font-size:72px;display:block;margin-bottom:12px;filter:drop-shadow(0 4px 12px rgba(0,0,0,.5));}
+header h1{
+  font-size:clamp(30px,5vw,52px);font-weight:900;letter-spacing:2px;
+  background:linear-gradient(90deg,#f4d03f,#e8a010,#f4d03f);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:10px;
+}
+header .subtitle{font-size:18px;color:rgba(255,255,255,.8);margin-bottom:22px;}
+.badge-row{display:flex;justify-content:center;gap:8px;flex-wrap:wrap}
+.badge{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:20px;padding:4px 14px;font-size:13px;color:rgba(255,255,255,.9);}
+.badge.gold{background:rgba(212,160,23,.25);border-color:rgba(212,160,23,.5);color:var(--gold-light);}
+
+/* LAYOUT */
+.container{max-width:1100px;margin:0 auto;padding:0 24px;}
+
+/* NAV */
+nav{background:#fff;border-bottom:2px solid var(--border);position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.08);}
+nav ul{display:flex;list-style:none;overflow-x:auto;max-width:1100px;margin:0 auto;padding:0 24px;}
+nav ul li a{display:block;padding:14px 18px;color:var(--muted);font-size:14px;font-weight:500;white-space:nowrap;border-bottom:3px solid transparent;transition:.2s}
+nav ul li a:hover{color:var(--primary);border-bottom-color:var(--primary);text-decoration:none;}
+
+/* SECTIONS */
+section{padding:56px 0;border-bottom:1px solid var(--border);}
+section:last-child{border-bottom:none;}
+.section-title{font-size:28px;font-weight:800;color:var(--primary-dark);margin-bottom:28px;display:flex;align-items:center;gap:10px;}
+.section-title::after{content:"";flex:1;height:2px;background:linear-gradient(90deg,var(--border),transparent);}
+
+/* VIDEO */
+.video-wrapper{background:#000;border-radius:12px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.25);aspect-ratio:16/9;max-width:900px;margin:0 auto;}
+.video-wrapper video{width:100%;height:100%;display:block;}
+
+/* TIP / WARN */
+.tip-box{margin-top:24px;background:var(--card);border:1px solid var(--border);border-left:4px solid var(--gold);border-radius:8px;padding:14px 18px;font-size:14px;color:var(--muted);max-width:820px;}
+.warn-box{
+  margin-top:20px;background:#fff8e1;border:1.5px solid #f9a825;border-left:5px solid #f57f17;
+  border-radius:10px;padding:18px 22px;font-size:14px;line-height:1.8;max-width:820px;
+}
+.warn-box .wb-title{font-size:15px;font-weight:700;color:#b75e00;display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+.warn-box .wb-row{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px dashed #f9d070;}
+.warn-box .wb-row:last-child{border-bottom:none;}
+.warn-box .wb-tag{flex-shrink:0;background:#f57f17;color:#fff;border-radius:6px;padding:2px 10px;font-size:12px;font-weight:700;margin-top:2px;}
+.warn-box .wb-tag.ok{background:#2e7d32;}
+.warn-box .wb-content{color:#5a3e00;font-size:14px;}
+.warn-box .wb-content strong{color:#b75e00;}
+.cmd-inline{display:inline-block;background:#1e1e1e;color:#9cdcfe;border-radius:5px;padding:2px 10px;font-family:"Cascadia Code","Fira Code",Consolas,monospace;font-size:13px;margin-top:4px;}
+
+/* STEPS */
+.steps{counter-reset:step;}
+.step{display:flex;gap:20px;margin-bottom:28px;}
+.step::before{counter-increment:step;content:counter(step);width:40px;height:40px;border-radius:50%;background:var(--primary);color:#fff;font-weight:700;font-size:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.step-body h3{font-size:17px;font-weight:700;margin-bottom:8px;}
+.step-body p{font-size:14px;color:var(--muted);margin-bottom:10px;line-height:1.8;}
+.step-body .quote{background:var(--card);border-left:3px solid var(--primary);padding:10px 16px;border-radius:0 8px 8px 0;font-size:14px;color:var(--text);margin:6px 0;}
+
+/* IMAGES */
+.install-imgs{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:12px;}
+.install-imgs img{width:100%;border-radius:10px;border:1px solid var(--border);box-shadow:0 4px 12px rgba(0,0,0,.1);cursor:zoom-in;transition:.2s;}
+.install-imgs img:hover{transform:scale(1.02);}
+
+/* CARDS (entry + feature) */
+.entry-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+.entry-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px;}
+.entry-card h3{font-size:16px;font-weight:700;color:var(--primary-dark);margin-bottom:10px;}
+.entry-card p{font-size:14px;color:var(--muted);line-height:1.7;}
+
+.feature-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:18px;}
+.feature-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 22px;transition:.2s;}
+.feature-card:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgba(0,0,0,.08);}
+.feature-icon{font-size:28px;margin-bottom:10px;}
+.feature-card h3{font-size:15px;font-weight:700;color:var(--primary-dark);margin-bottom:6px;}
+.feature-card p{font-size:13px;color:var(--muted);line-height:1.6;}
+
+/* PIPELINE */
+.pipeline{display:flex;align-items:center;flex-wrap:wrap;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 18px;overflow-x:auto;}
+.pipe-step{display:flex;flex-direction:column;align-items:center;gap:6px;flex:1;min-width:74px;}
+.pipe-num{width:34px;height:34px;border-radius:50%;background:var(--primary);color:#fff;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;}
+.pipe-label{font-size:12px;color:var(--muted);text-align:center;font-weight:500;}
+.pipe-arrow{font-size:18px;color:var(--gold);padding:0 2px;margin-top:-14px;}
+
+/* TABLE */
+.table-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:15px;}
+th{background:var(--primary);color:#fff;padding:12px 16px;text-align:left;font-weight:600;}
+td{padding:11px 16px;border-bottom:1px solid var(--border);}
+tr:nth-child(even) td{background:var(--card);}
+tr.highlight td{background:rgba(192,57,43,.08);font-weight:600;color:var(--primary-dark);}
+tr:hover td{background:rgba(212,160,23,.08);}
+
+/* REQ */
+.req-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;}
+.req-item{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;}
+.req-name{font-weight:700;font-size:14px;color:var(--primary-dark);margin-bottom:4px;}
+.req-val{font-size:13px;color:var(--muted);}
+
+/* FOOTER */
+footer{background:#1a0a00;color:rgba(255,255,255,.5);text-align:center;padding:28px 24px;font-size:13px;}
+footer strong{color:rgba(255,255,255,.8);}
+
+/* LIGHTBOX */
+#lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:9999;align-items:center;justify-content:center;cursor:zoom-out;}
+#lightbox.active{display:flex;}
+#lightbox img{max-width:92vw;max-height:92vh;border-radius:8px;}
+
+@media(max-width:680px){
+  .install-imgs,.entry-grid{grid-template-columns:1fr;}
+  .pipeline{padding:16px 8px;}
+  .pipe-label{font-size:10px;}
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <span class="header-icon">&#x5C06;</span>
+  <h1>TTXQ-Auto</h1>
+  <p class="subtitle">天天象棋全自动对弈系统 &mdash; 一键启动 &middot; 自动识盘 &middot; 自动下棋</p>
+  <div class="badge-row">
+    <span class="badge gold">v1.6.1</span>
+    <span class="badge">Windows 10/11</span>
+    <span class="badge">计算机视觉</span>
+    <span class="badge">Pikafish 引擎</span>
+    <span class="badge">AI Agent 接入</span>
+  </div>
+</header>
+
+<!-- NAV -->
+<nav>
+  <ul>
+    <li><a href="#demo">演示视频</a></li>
+    <li><a href="#intro">简介</a></li>
+    <li><a href="#quickstart">快速开始</a></li>
+    <li><a href="#enter">进入对局</a></li>
+    <li><a href="#features">功能特性</a></li>
+    <li><a href="#strength">棋力档位</a></li>
+    <li><a href="#pipeline">核心流水线</a></li>
+    <li><a href="#require">系统要求</a></li>
+  </ul>
+</nav>
+
+<!-- DEMO -->
+<section id="demo">
+  <div class="container">
+    <h2 class="section-title">演示视频</h2>
+    <div class="video-wrapper">
+      <video controls preload="metadata" playsinline>
+        <source src="assets/demo.mp4" type="video/mp4">
+        您的浏览器不支持 HTML5 视频播放，请<a href="assets/demo.mp4">点此下载视频</a>。
+      </video>
+    </div>
+  </div>
+</section>
+
+<!-- INTRO -->
+<section id="intro">
+  <div class="container">
+    <h2 class="section-title">简介</h2>
+    <p style="font-size:16px;line-height:1.95;max-width:820px;">
+      TTXQ-Auto 是一套<strong>全自动天天象棋对弈系统</strong>。通过屏幕截图识别棋盘局面，调用 Pikafish 引擎计算最佳走法，
+      再通过模拟鼠标点击执行落子，实现完整的&ldquo;截图 &rarr; 识盘 &rarr; 思考 &rarr; 走子&rdquo;闭环。
+      支持自动检测红 / 黑方、5 档棋力、实时 HUD、AI Agent 导航接口、游戏结束自动重启等功能。
+    </p>
+    <div class="tip-box">
+      &#9888;&nbsp; 推荐在 <strong>Windows</strong> 中使用，搭配 <strong>CodeBuddy</strong> 或 <strong>WorkBuddy</strong>，
+      模型选择 <strong>Claude-Sonnet-4.6</strong> 或 <strong>GPT-5.4</strong>（不推荐 Claude-Opus，该模型在 CodeBuddy 上无法正常识别图片）。
+    </div>
+    <div class="warn-box">
+      <div class="wb-title">&#128276; 不同 AI 工具的使用方式</div>
+      <div class="wb-row">
+        <span class="wb-tag ok">CodeBuddy</span>
+        <div class="wb-content">
+          支持<strong>全自动方式</strong>：直接对话&ldquo;使用 TTXQ-Auto 这个 Skill 自动下天天象棋&rdquo;，
+          AI 能识别截图坐标并自动完成启动 &rarr; 导航 &rarr; 进入对局的全流程。
+        </div>
+      </div>
+      <div class="wb-row">
+        <span class="wb-tag">Tiki 小龙虾</span>
+        <div class="wb-content">
+          <strong>无法</strong>从截图中返回按钮的正确坐标，因此需要<strong>手动操作</strong>：
+          先手动点击进入&ldquo;天天象棋小游戏&rdquo;的象棋对局界面，棋盘出现后，再告诉 Tiki 小龙虾：<br>
+          <span class="cmd-inline">使用 TTXQ-Auto 自动下天天象棋</span><br>
+          即可接管自动下棋。
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- QUICK START -->
+<section id="quickstart">
+  <div class="container">
+    <h2 class="section-title">快速开始</h2>
+
+    <h3 style="font-size:20px;color:var(--primary-dark);margin-bottom:16px;">一、准备天天象棋小游戏环境</h3>
+    <div class="steps">
+      <div class="step">
+        <div class="step-body">
+          <h3>下载并安装&ldquo;腾讯应用宝&rdquo;</h3>
+          <p>下载地址：<a href="https://sj.qq.com/" target="_blank" rel="noopener">https://sj.qq.com/</a></p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-body">
+          <h3>在腾讯应用宝中搜索并下载&ldquo;天天象棋 小游戏&rdquo;</h3>
+          <p>安装完毕后，应用宝桌面会出现&ldquo;天天象棋 小游戏&rdquo;的快捷入口。</p>
+          <div class="install-imgs">
+            <img src="assets/install-01.png" alt="下载腾讯应用宝" onclick="openLightbox(this)">
+            <img src="assets/install-02.png" alt="搜索天天象棋小游戏" onclick="openLightbox(this)">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <h3 style="font-size:20px;color:var(--primary-dark);margin:28px 0 16px;">二、在 AI Agent 中使用本 Skill</h3>
+    <div class="steps">
+      <div class="step">
+        <div class="step-body">
+          <h3>安装 Skill</h3>
+          <p>在 AI Agent 中发送如下指令，让其自动安装本 Skill（示例路径请替换为实际路径）：</p>
+          <div class="quote">安装此 Skill，路径为 <code>D:/006_TTXQ-Auto_v1.6.1_20260425.zip</code></div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-body">
+          <h3>启动自动下棋</h3>
+          <p>安装完成后，对 AI Agent 发送：</p>
+          <div class="quote">使用 TTXQ-Auto 这个 Skill 自动下天天象棋</div>
+          <p>即可开始全自动对弈流程。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ENTER -->
+<section id="enter">
+  <div class="container">
+    <h2 class="section-title">进入自动下棋</h2>
+    <p style="font-size:15px;color:var(--muted);margin-bottom:20px;">本 Skill 支持两种方式进入自动对弈：</p>
+    <div class="entry-grid">
+      <div class="entry-card">
+        <h3>&#128241; 手动方式</h3>
+        <p>手动点击进入&ldquo;天天象棋 小游戏&rdquo;的象棋对局界面，然后由本 Skill 接管自动下棋。<br><br>
+           <strong>适用场景：</strong>Tiki 小龙虾，或希望自己选择对手难度的情况。</p>
+      </div>
+      <div class="entry-card">
+        <h3>&#129302; 全自动方式</h3>
+        <p>由本 Skill 自动启动天天象棋游戏，并自动进入&ldquo;人机对战&rdquo;。<br><br>
+           <strong>适用场景：</strong>CodeBuddy / WorkBuddy，开箱即用，只需一句话。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section id="features">
+  <div class="container">
+    <h2 class="section-title">功能特性</h2>
+    <div class="feature-grid">
+      <div class="feature-card"><div class="feature-icon">&#127381;</div><h3>完全自主运行</h3><p>启动后自动发现窗口、截图、识别、下棋、等待对手。</p></div>
+      <div class="feature-card"><div class="feature-icon">&#128250;</div><h3>自动启动 APP</h3><p>未找到窗口时自动通过桌面快捷方式启动天天象棋。</p></div>
+      <div class="feature-card"><div class="feature-icon">&#9878;</div><h3>自动检测红 / 黑方</h3><p>通过底部帅 / 将位置判断我方颜色。</p></div>
+      <div class="feature-card"><div class="feature-icon">&#128260;</div><h3>对手走子检测</h3><p>通过 FEN 轮询检测对手是否已走完，替代固定时间等待。</p></div>
+      <div class="feature-card"><div class="feature-icon">&#127919;</div><h3>游戏结束自动重启</h3><p>对局结束后自动检测并等待新对局开始。</p></div>
+      <div class="feature-card"><div class="feature-icon">&#128065;</div><h3>实时 HUD 覆盖层</h3><p>透明显示步骤信息和走法箭头，按键：F9 HUD &middot; F10 Log &middot; F11 Folder。</p></div>
+      <div class="feature-card"><div class="feature-icon">&#128161;</div><h3>操作可视化反馈</h3><p>截图（金色矩形）和点击（青色十字）在屏幕上短暂显示。</p></div>
+      <div class="feature-card"><div class="feature-icon">&#129504;</div><h3>AI Agent 导航接口</h3><p>提供截图 + 分析 + 点击 API，让 AI Agent 辅助导航到对局界面。</p></div>
+      <div class="feature-card"><div class="feature-icon">&#128202;</div><h3>游戏状态检测</h3><p>识别 IN_GAME / GAME_OVER / POPUP / MAIN_MENU 等界面。</p></div>
+      <div class="feature-card"><div class="feature-icon">&#128203;</div><h3>丰富对局报告</h3><p>每步详细信息 + 可视化图片 + 统计汇总。</p></div>
+      <div class="feature-card"><div class="feature-icon">&#127919;</div><h3>YOLO11 棋子识别</h3><p>15 类分类模型，准确率 &gt; 95%。</p></div>
+      <div class="feature-card"><div class="feature-icon">&#9818;</div><h3>Pikafish UCI 引擎</h3><p>中国象棋专用引擎，接近特级大师水平。</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- STRENGTH -->
+<section id="strength">
+  <div class="container">
+    <h2 class="section-title">5 档棋力体系</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>档位</th><th>名称</th><th>思考时间</th><th>线程数</th><th>哈希表</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>休闲</td><td>1 秒</td><td>2</td><td>64 MB</td></tr>
+          <tr><td>2</td><td>简单</td><td>2 秒</td><td>4</td><td>128 MB</td></tr>
+          <tr><td>3</td><td>中等</td><td>5 秒</td><td>8</td><td>512 MB</td></tr>
+          <tr class="highlight"><td>4</td><td>强力（默认）</td><td>8 秒</td><td>16</td><td>2 GB</td></tr>
+          <tr><td>5</td><td>最强</td><td>15 秒</td><td>24</td><td>4 GB</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="tip-box">
+      档位越高，引擎思考越深，棋力越强，但对电脑性能要求也越高。普通玩家建议保持默认 <strong>4 档（强力）</strong>。
+    </div>
+  </div>
+</section>
+
+<!-- PIPELINE -->
+<section id="pipeline">
+  <div class="container">
+    <h2 class="section-title">核心流水线</h2>
+    <div class="pipeline">
+      <div class="pipe-step"><div class="pipe-num">P1</div><div class="pipe-label">截图</div></div>
+      <div class="pipe-arrow">&#10142;</div>
+      <div class="pipe-step"><div class="pipe-num">P2</div><div class="pipe-label">棋盘检测</div></div>
+      <div class="pipe-arrow">&#10142;</div>
+      <div class="pipe-step"><div class="pipe-num">P3</div><div class="pipe-label">棋子识别</div></div>
+      <div class="pipe-arrow">&#10142;</div>
+      <div class="pipe-step"><div class="pipe-num">P4</div><div class="pipe-label">FEN 生成</div></div>
+      <div class="pipe-arrow">&#10142;</div>
+      <div class="pipe-step"><div class="pipe-num">P5</div><div class="pipe-label">引擎分析</div></div>
+      <div class="pipe-arrow">&#10142;</div>
+      <div class="pipe-step"><div class="pipe-num">P6</div><div class="pipe-label">走子执行</div></div>
+      <div class="pipe-arrow">&#10142;</div>
+      <div class="pipe-step"><div class="pipe-num">P7</div><div class="pipe-label">验证 / 循环</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- REQUIREMENTS -->
+<section id="require">
+  <div class="container">
+    <h2 class="section-title">系统要求</h2>
+    <div class="req-grid">
+      <div class="req-item"><div class="req-name">操作系统</div><div class="req-val">Windows 10 / 11</div></div>
+      <div class="req-item"><div class="req-name">Python</div><div class="req-val">&ge; 3.11</div></div>
+      <div class="req-item"><div class="req-name">CPU</div><div class="req-val">推荐 8 核以上</div></div>
+      <div class="req-item"><div class="req-name">内存</div><div class="req-val">推荐 8 GB 以上</div></div>
+      <div class="req-item"><div class="req-name">运行环境</div><div class="req-val">腾讯应用宝 + 天天象棋小游戏</div></div>
+      <div class="req-item"><div class="req-name">AI Agent</div><div class="req-val">CodeBuddy / WorkBuddy / Tiki</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <p><strong>TTXQ-Auto</strong> &mdash; 仅供学习和研究使用</p>
+  <p style="margin-top:6px;">Computer Vision &middot; YOLO11 &middot; Pikafish &middot; Python</p>
+</footer>
+
+<!-- LIGHTBOX -->
+<div id="lightbox" onclick="closeLightbox()"><img id="lightbox-img" src="" alt=""></div>
+
+<script>
+function openLightbox(img){document.getElementById("lightbox-img").src=img.src;document.getElementById("lightbox").classList.add("active");}
+function closeLightbox(){document.getElementById("lightbox").classList.remove("active");}
+document.addEventListener("keydown",function(e){if(e.key==="Escape")closeLightbox();});
+</script>
+</body>
+</html>
